@@ -1,0 +1,38 @@
+{% if items %}
+{% for item in items %}
+<div class="card u-shadow u-flex u-justify-space-between animated fadeIn">
+    <div class="col-8 col-md-3 m-1">
+        <div class="form-ext-control form-ext-checkbox" hx-swap="outerHTML swap:1s">
+            <input id="{{ item.id }}" class="form-ext-input" type="checkbox" hx-trigger="change" hx-target="closest .card" hx-delete="{{ url_for('delete_item', slug=request.path, id=item.id) }}">
+            <label class="form-ext-label font-bold" for="{{ item.id }}">{{ item.item }}</label>
+            {% if item.info %}
+                <p class="m-1">Info</p>
+            {% endif %}
+        </div>
+    </div>
+    <div class="col-6 col-md-3 m-1">
+        {% if item.quantity == 1 %}
+            <button class="btn-light btn--xs" disabled>-</button>
+        {% else %}
+            <button class="btn-light btn--xs">-</button>
+        {% endif %}
+        <input value="{{ item.quantity }}" class="bg-white input--xs w-5" type="text" id="quantity_{{ item.id }}" name="quantity_{{ item.id }}">
+        <button hx-put="{{ url_for('add_quantity', slug=request.path, id=item.id) }}" hx-target="#quantity_{{ item.id }}" class="btn-light btn--xs">+</button>
+    </div>
+    <div class="col-3 col-md-3 m-1 u-flex">
+        <div>
+            <button href="#" class="text-teal-400 btn--xs btn-transparent u-center mx-2">
+                <span class="material-symbols-outlined m-1">edit</span>
+            </button>
+        </div>
+        <div>
+            <button hx-target="closest .card" hx-trigger="click" hx-delete="{{ url_for('delete_item', slug=request.path, id=item.id) }}" class="text-red-500 btn--xs btn-transparent u-center mx-2">
+                <span class="material-symbols-outlined m-1">delete</span>
+            </button>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% else %}
+<p>Liste ist leer</p>
+{% endif %}

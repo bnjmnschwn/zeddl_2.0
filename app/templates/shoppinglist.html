@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row u-center">
+    <div class="col-12 col-md-6 u-flex u-items-baseline u-justify-space-between">
+        <a href="{{ request.path }}" class="text-black"><h1>ZEDDL</h1></a>
+        <div class="u-inline-flex">
+            <button class="btn btn--xs btn-transparent u-center mx-2">
+                <span class="material-symbols-outlined m-1">share</span>
+            </button>
+            <button hx-target="#item-container" hx-trigger="click" hx-delete="{{ url_for('clear_list', slug=request.path) }}" class="btn btn--xs btn-transparent u-center mx-2">
+                <span class="material-symbols-outlined m-1">delete_sweep</span>
+            </button>
+        </div>
+        <input value="{{ request.url }}" class="input--xs" hidden>
+    </div>
+</div>
+<div class="row u-center">
+    <div class="col-12 col-md-6">
+        <div id="item-container">
+            {% include "item.html" %}
+        </div>
+    </div>
+</div>
+<div class="row u-center" style="position: fixed; bottom: 0em; left: 0%; right: 0%; margin: 0 auto">
+    <div class="col-12 col-md-6">
+        <form hx-post="{{ url_for('add_item', slug=request.path) }}" hx-target="#item-container" hx-swap="beforeend">
+            <input class="bg-gray-100 u-round-xl" type="text" name="item" placeholder="Artikel hinzufügen">
+        </form>
+    </div>
+</div>
+{% endblock %}
