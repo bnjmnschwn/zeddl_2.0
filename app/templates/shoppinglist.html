@@ -18,7 +18,11 @@
 <div class="row u-center">
     <div class="col-12 col-md-6">
         <div id="item-container">
-            {% include "item.html" %}
+            {% if items %}
+                {% include "item.html" %}
+            {% else %}
+                <p>Liste ist leer.</p>
+            {% endif %}
         </div>
     </div>
 </div>

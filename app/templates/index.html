@@ -1,12 +1,24 @@
 {% extends "base.html" %}
 
 {% block content %}
-    <form action="" method="post" novalidate>
-        {{ form.hidden_tag() }}
-        <p>
-            {{ form.spacename.label }}<br>
-            {{ form.spacename(size=32) }}
-        </p>
-        <p>{{ form.submit() }}</p>
-    </form>
+<div class="row u-center">
+    <div class="col-12 col-md-6 u-flex u-items-baseline u-justify-space-between">
+        <a href="{{ request.path }}" class="text-black"><h1>ZEDDL</h1></a>
+        <input value="{{ request.url }}" class="input--xs" hidden>
+    </div>
+</div>
+<div class="row u-center" style="position: fixed; bottom: 40%; left: 0%; right: 0%; margin: 0 auto">
+    <div class="col-12 col-md-6">
+        <div id="item-container">
+            <form action="" method="post" novalidate>
+                {{ form.hidden_tag() }}
+                <p>
+                    {{ form.spacename.label }}<br>
+                    {{ form.spacename(size=32) }}
+                </p>
+                <p>{{ form.submit() }}</p>
+            </form>
+        </div>
+    </div>
+</div>
 {% endblock %}
