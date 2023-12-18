@@ -18,16 +18,37 @@
 {% include "item.html" %}
 <div class="row u-center" style="position: fixed; bottom: 1em; left: 0%; right: 0%; margin: 0 auto">
     <div class="col-12 col-md-6">
-        <form hx-post="{{ url_for('add_item', slug=request.view_args.slug) }}" hx-target="#zeddl-content" hx-swap="innerHTML">
-            <input id="item-input" style="border-radius: 10px; border: 0; color: #FFFFFF; background-color: #191C21" type="text" name="item" placeholder="Artikel hinzufügen"></div>
+        <form 
+            hx-post="{{ url_for('add_item', slug=request.view_args.slug) }}" 
+            hx-target="#zeddl-content" 
+            hx-swap="innerHTML"
+            id="submit-btn">
+            <div class="input-control">
+                <input 
+                    hx-post="{{ url_for('get_suggestions', slug=request.view_args.slug) }}" 
+                    hx-target="#suggestion-box"
+                    hx-swap="innerHTML"
+                    hx-trigger="keyup changed delay:150ms"
+                    id="item-input" 
+                    style="border-radius: 10px; border: 1px solid #191C21; color: #191C21; background-color: #FFFFFF" 
+                    type="text" 
+                    name="item" 
+                    placeholder="Artikel hinzufügen"
+                    class="input-contains-icon-right">
+                <span class="icon icon-right"><span class="material-symbols-outlined">send</span></span>
+            </div>
         </form>
     </div>
 </div>
 <script>
 document.body.addEventListener('htmx:afterSwap', function(event) {
-    var inputField = document.getElementById('item-input');
-    if (inputField) {
-        inputField.value = '';
+    if (event.target.id === 'zeddl-content') {
+        var inputField = document.getElementById('item-input');
+        if (inputField) {
+            inputField.value = '';
+        }
+        var suggestionBox = document.getElementById('suggestions');
+        suggestionBox.remove();
     }
 });
 </script>

@@ -26,36 +26,34 @@ def create_slug(name):
 @app.route('/manifest.json')
 def serve_manifest():
     manifest = {
-    "name": "ZEDDL App",
-    "short_name": "ZEDDL",
-    "theme_color": "#000000",
-    "background_color": "#FFFFFF",
-    "display": "standalone",
-    "orientation": "portrait",
-    "scope": "/",
-    "start_url": request.referrer,
-    "icons": [
-    {
-    "src": "static/images/zeddl_icon.png",
-    "sizes": "144x144",
-    "type": "image/png",
-    "purpose": "any maskable"
-    },
-    {
-    "src": "static/icons/zeddl_icon.png",
-    "sizes": "192x192",
-    "type": "image/png",
-    "purpose": "any maskable"
-    },
-    {
-    "src": "static/icons/zeddl_icon.png",
-    "sizes": "512x512",
-    "type": "image/png",
-    "purpose": "any maskable"
-    }
-    ]
-    }
-    print(manifest)
+        "name": "ZEDDL App",
+        "short_name": "ZEDDL",
+        "theme_color": "#000000",
+        "background_color": "#FFFFFF",
+        "display": "standalone",
+        "orientation": "portrait",
+        "scope": "/",
+        "start_url": request.referrer,
+        "icons": [
+            {
+                "src": "static/images/zeddl_icon.png",
+                "sizes": "144x144",
+                "type": "image/png",
+                "purpose": "any maskable"
+            },
+            {
+                "src": "static/icons/zeddl_icon.png",
+                "sizes": "192x192",
+                "type": "image/png",
+                "purpose": "any maskable"
+            },
+            {
+                "src": "static/icons/zeddl_icon.png",
+                "sizes": "512x512",
+                "type": "image/png",
+                "purpose": "any maskable"
+            }]
+        }
     with open("app/manifest.json", "w") as outfile:
         json.dump(manifest, outfile)
     return send_file("manifest.json", mimetype="application/manifest+json")
@@ -101,18 +99,35 @@ def shoppingspace(slug):
 def add_item(slug):
     conn = get_db_connection()
     item = request.form.get("item")
-    conn.execute("INSERT INTO items (item) VALUES (?)", (item,))
-    conn.execute("INSERT INTO space_items (space_id, item_id) \
-        SELECT (SELECT id FROM spaces WHERE spacename = '"+slug+"') AS space_id, \
-        id AS item_id FROM items WHERE id = LAST_INSERT_ROWID();")
-    conn.commit()
+    try:
+        conn.execute("INSERT INTO items (item) VALUES (?)", (item,))
+        conn.execute("INSERT INTO space_items (space_id, item_id) \
+            SELECT (SELECT id FROM spaces WHERE spacename = '"+slug+"') AS space_id, \
+            id AS item_id FROM items WHERE id = LAST_INSERT_ROWID();")
+        conn.commit()
+    except:
+        items = get_items(slug)
+        flash("Fehler beim hinzufügen", "danger")
+        return render_template("item.html", items=items)
     conn.close()
     items = get_items(slug)
     flash(item+" hinzugefügt.", "success")
     return render_template("item.html", items=items)
 
 
-# check item
+# get suggestions
+@app.route("/<slug>/search", methods=["POST"])
+def get_suggestions(slug):
+    value = request.form.get("item")
+    if len(value) >= 3:        
+        conn = get_db_connection()
+        suggestions = conn.execute("SELECT items.item FROM items \
+            WHERE item COLLATE UTF8_GENERAL_CI LIKE \
+            REPLACE('%"+value+"%', ' ', '%') LIMIT 5").fetchall()
+        conn.commit()
+        return render_template("suggestions.html", suggestions=suggestions)
+    else:
+        return "", 200
 
 
 # update items
@@ -140,7 +155,7 @@ def add_quantity(slug, id):
     return "", 200
 
 
-# delete item
+# check & delete item
 @app.route("/<slug>/delete/<id>/<action>", methods=["DELETE"])
 def delete_item(slug, id, action):
     conn = get_db_connection()

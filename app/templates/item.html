@@ -42,13 +42,16 @@
 {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
         {% for category, message in messages %}
-            <div class="animated fadeIn" remove-me="1.8s" style="position: fixed; top: 0; left: 50%; transform: translate(-50%); z-index: 100">
-                <div class="toast toast--{{ category }}">
-                    <button class="btn-close"></button>
-                    <p class="mr-2">{{ message }}</p>
+            <div class="u-flex u-center u-justify-baseline animated fadeIn" remove-me="1.8s" style="position: fixed; bottom: 10%; left: 50%; transform: translate(-50%); z-index: 100">
+                <div class="toast toast--{{ category }} py-0 px-1">
+                    <p><small>{{ message }}</small></p>
                 </div>
             </div>
         {% endfor %}
     {% endif %}
 {% endwith %}
+    <div class="row u-center">
+        <div class="col-12 col-md-6" id="suggestion-box" style="position: fixed; bottom: 12%; left: 50%; transform: translate(-50%); z-index: 50;">
+        </div>
+    </div>
 </div>
