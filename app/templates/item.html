@@ -1,34 +1,54 @@
-{% for item in items %}
-<div class="card u-shadow u-flex u-justify-space-between animated fadeIn">
-    <div class="col-8 col-md-3 m-1">
-        <div class="form-ext-control form-ext-checkbox" hx-swap="outerHTML swap:1s">
-            <input id="{{ item.id }}" class="form-ext-input" type="checkbox" hx-trigger="change" hx-target="closest .card" hx-delete="{{ url_for('delete_item', slug=request.path, id=item.id) }}">
-            <label class="form-ext-label font-bold" for="{{ item.id }}">{{ item.item }}</label>
-            {% if item.info %}
-                <p class="m-1">Info</p>
+<div id="zeddl-content">
+<div class="row u-center">
+        <div class="col-12 col-md-6">
+            {% if items %}
+                {% for item in items %}
+                    <div class="row u-flex u-border-0 u-shadow-sm u-round-md my-1 p-1">
+                        <div class="col-xs-12 col-sm-6">
+                            <div class="form-ext-control form-ext-checkbox">
+                                <input id="{{ item.id }}" class="form-ext-input form-ext-input--dark" type="checkbox" hx-trigger="change"  hx-target="#zeddl-content" hx-swap="innerHTML" hx-delete="{{ url_for('delete_item', slug=request.view_args.slug, id=item.id, action='check') }}">
+                                <label class="form-ext-label font-bold" for="{{ item.id }}">{{ item.item }}</label>
+                                {% if item.info %}
+                                    <p class="m-1">Info</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-xs-6 col-sm-3 u-flex u-flex u-items-baseline u-justify-flex-start" style="visibility: hidden;">
+                            {% if item.quantity == 1 %}
+                                <button class="btn bg-blue-100 text-blue-600 btn--xs" disabled>-</button>
+                            {% else %}
+                                <button class="btn bg-blue-100 text-blue-600 btn--xs">-</button>
+                            {% endif %}
+                            <input value="{{ item.quantity }}" class="bg-white input--xs w-5 m-1" type="text" id="quantity_{{ item.id }}" name="quantity_{{ item.id }}">
+                            <button hx-put="{{ url_for('add_quantity', slug=request.path, id=item.id) }}" hx-target="#quantity_{{ item.id }}" class="btn bg-blue-100 text-blue-600 btn--xs">+</button>
+                        </div>
+                        <div class="col-xs-6 col-sm-3 u-flex u-items-baseline u-justify-flex-end">
+                                <button href="#" class="text-teal-400 btn--xs btn-transparent u-center mx-1" hidden>
+                                    <span class="material-symbols-outlined m-1">edit</span>
+                                </button>
+                                <button class="text-red-500 btn--xs btn-transparent u-center mx-1" hx-trigger="click" hx-target="#zeddl-content" hx-swap="innerHTML" hx-delete="{{ url_for('delete_item', slug=request.view_args.slug, id=item.id, action='delete') }}">
+                                    <span class="material-symbols-outlined m-1">delete</span>
+                                </button>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <p>Dein Einkaufszeddl ist leer :-(</p>
             {% endif %}
         </div>
     </div>
-    <div class="col-6 col-md-3 m-1">
-        {% if item.quantity == 1 %}
-            <button class="btn-light btn--xs" disabled>-</button>
-        {% else %}
-            <button class="btn-light btn--xs">-</button>
-        {% endif %}
-        <input value="{{ item.quantity }}" class="bg-white input--xs w-5" type="text" id="quantity_{{ item.id }}" name="quantity_{{ item.id }}">
-        <button hx-put="{{ url_for('add_quantity', slug=request.path, id=item.id) }}" hx-target="#quantity_{{ item.id }}" class="btn-light btn--xs">+</button>
-    </div>
-    <div class="col-3 col-md-3 m-1 u-flex">
-        <div>
-            <button href="#" class="text-teal-400 btn--xs btn-transparent u-center mx-2">
-                <span class="material-symbols-outlined m-1">edit</span>
-            </button>
-        </div>
-        <div>
-            <button hx-target="closest .card" hx-trigger="click" hx-delete="{{ url_for('delete_item', slug=request.path, id=item.id) }}" class="text-red-500 btn--xs btn-transparent u-center mx-2">
-                <span class="material-symbols-outlined m-1">delete</span>
-            </button>
-        </div>
-    </div>
 </div>
-{% endfor %}
+<div hx-ext="remove-me">
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            <div class="animated fadeIn" remove-me="1.8s" style="position: fixed; top: 0; left: 50%; transform: translate(-50%); z-index: 100">
+                <div class="toast toast--{{ category }}">
+                    <button class="btn-close"></button>
+                    <p class="mr-2">{{ message }}</p>
+                </div>
+            </div>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
+</div>

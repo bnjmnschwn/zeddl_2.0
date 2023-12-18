@@ -7,9 +7,29 @@
         <input value="{{ request.url }}" class="input--xs" hidden>
     </div>
 </div>
-<div class="row u-center" style="position: fixed; bottom: 40%; left: 0%; right: 0%; margin: 0 auto">
+<div class="row u-center">
     <div class="col-12 col-md-6">
-        <div id="item-container">
+        <div class="space space--lg space--xl-md"></div>
+        <h2>So funktionierts</h2>
+        <ul>
+            <li>Einkaufszeddl erstellen</li>
+            <li>Link zu deinem Einkaufszeddl mit Familie & Freunden teilen</li>
+            <li>Artikel zum Einkaufszeddl hinzufügen</li>
+            <li>Entspannt einkaufen!</li>
+        </ul>
+    </div>
+</div>
+<div class="row u-center">
+    <div class="col-12 col-md-6">
+        {% if error %}
+            <div class="frame bg-red-100 text-red-600 pb-2 mb-2">
+                <div class="frame__header">
+                    <div class="frame_title"><b>{{ error.title }}</b></div>
+                </div>
+                <div class="frame__body">{{ error.message }}</div>
+            </div>
+        {% endif %}
+        <div>
             <form action="" method="post" novalidate>
                 {{ form.hidden_tag() }}
                 <p>
@@ -19,6 +39,7 @@
                 <p>{{ form.submit() }}</p>
             </form>
         </div>
+        <div>
     </div>
 </div>
 {% endblock %}

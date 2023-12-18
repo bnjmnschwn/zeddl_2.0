@@ -3,34 +3,32 @@
 {% block content %}
 <div class="row u-center">
     <div class="col-12 col-md-6 u-flex u-items-baseline u-justify-space-between">
-        <a href="{{ request.path }}" class="text-black"><h1>ZEDDL</h1></a>
+        <h1><a href="{{ url_for('shoppingspace', slug=request.view_args.slug) }}" class="text-black font-bold">ZEDDL</a></h1>
         <div class="u-inline-flex">
             <button class="btn btn--xs btn-transparent u-center mx-2">
                 <span class="material-symbols-outlined m-1">share</span>
             </button>
-            <button hx-target="#item-container" hx-trigger="click" hx-delete="{{ url_for('clear_list', slug=request.path) }}" class="btn btn--xs btn-transparent u-center mx-2">
+            <button class="btn btn--xs btn-transparent u-center mx-2" hx-trigger="click" hx-target="#zeddl-content" hx-swap="innerHTML" hx-delete="{{ url_for('clear_list', slug=request.view_args.slug) }}" >
                 <span class="material-symbols-outlined m-1">delete_sweep</span>
             </button>
         </div>
         <input value="{{ request.url }}" class="input--xs" hidden>
     </div>
 </div>
-<div class="row u-center">
+{% include "item.html" %}
+<div class="row u-center" style="position: fixed; bottom: 1em; left: 0%; right: 0%; margin: 0 auto">
     <div class="col-12 col-md-6">
-        <div id="item-container">
-            {% if items %}
-                {% include "item.html" %}
-            {% else %}
-                <p>Liste ist leer.</p>
-            {% endif %}
-        </div>
-    </div>
-</div>
-<div class="row u-center" style="position: fixed; bottom: 0em; left: 0%; right: 0%; margin: 0 auto">
-    <div class="col-12 col-md-6">
-        <form hx-post="{{ url_for('add_item', slug=request.path) }}" hx-target="#item-container" hx-swap="beforeend">
-            <input class="bg-gray-100 u-round-xl" type="text" name="item" placeholder="Artikel hinzufügen">
+        <form hx-post="{{ url_for('add_item', slug=request.view_args.slug) }}" hx-target="#zeddl-content" hx-swap="innerHTML">
+            <input id="item-input" style="border-radius: 10px; border: 0; color: #FFFFFF; background-color: #191C21" type="text" name="item" placeholder="Artikel hinzufügen"></div>
         </form>
     </div>
 </div>
+<script>
+document.body.addEventListener('htmx:afterSwap', function(event) {
+    var inputField = document.getElementById('item-input');
+    if (inputField) {
+        inputField.value = '';
+    }
+});
+</script>
 {% endblock %}

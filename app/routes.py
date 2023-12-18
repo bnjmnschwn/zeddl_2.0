@@ -1,13 +1,25 @@
 from app import app
-from flask import render_template, request, send_file
+from flask import render_template, request, send_file, flash, redirect, url_for
 from app.forms import SpaceForm
 import sqlite3
-
+import unidecode
 
 def get_db_connection():
     conn = sqlite3.connect('zeddl.db')
     conn.row_factory = sqlite3.Row
     return conn
+
+def get_items(slug):
+    conn = get_db_connection()
+    items = conn.execute("SELECT items.id, items.item, items.quantity FROM space_items \
+        JOIN spaces ON space_items.space_id = spaces.id \
+        JOIN items ON space_items.item_id = items.id \
+        WHERE spaces.spacename = '{}' ORDER BY items.created ASC"
+        .format(slug)).fetchall()
+    return items
+
+def create_slug(name):
+    return unidecode.unidecode(name).casefold().replace(' ', '-').replace('\'','')
 
 # PWA Stuff
 @app.route('/manifest.json')
@@ -23,16 +35,22 @@ def serve_sw():
 # index + create space
 @app.route("/", methods=["POST", "GET"])
 def index():
+    form = SpaceForm()
     if request.method == "POST":
-        name = request.form.get("spacename")
+        name = create_slug(request.form.get("spacename"))
         conn = get_db_connection()
-        conn.execute("INSERT INTO spaces (spacename) VALUES (?)", (name,))
-        conn.commit()
+        try:
+            conn.execute("INSERT INTO spaces (spacename) VALUES (?)", (name,))
+            conn.commit()
+        except:
+            error = {
+                "title": "Einkaufszeddl existiert bereits",
+                "message": "Wähle einen anderen Namen für deinen Einkaufszeddl."
+            }
+            return render_template("index.html", form=form, error=error)
         conn.close()
         return render_template("space_created.html", name=name)
-        # redirect to new space
     else:
-        form = SpaceForm()
         return render_template("index.html", form=form)
 
 
@@ -40,19 +58,13 @@ def index():
 @app.route("/<slug>")
 def shoppingspace(slug):
     form = SpaceForm()
-    conn = get_db_connection()
-    items = conn.execute("SELECT items.id, items.item, items.quantity FROM space_items \
-        JOIN spaces ON space_items.space_id = spaces.id \
-        JOIN items ON space_items.item_id = items.id \
-        WHERE spaces.spacename = '{}'"
-        .format(slug)).fetchall()
+    items = get_items(slug)
     return render_template("shoppinglist.html", form=form, items=items)
 
 
 # add item
 @app.route("/<slug>/add", methods=["POST"])
 def add_item(slug):
-        # add item to db and update view
     conn = get_db_connection()
     item = request.form.get("item")
     conn.execute("INSERT INTO items (item) VALUES (?)", (item,))
@@ -60,11 +72,9 @@ def add_item(slug):
         SELECT (SELECT id FROM spaces WHERE spacename = '"+slug+"') AS space_id, \
         id AS item_id FROM items WHERE id = LAST_INSERT_ROWID();")
     conn.commit()
-    items = conn.execute("SELECT items.id, items.item, items.quantity FROM space_items \
-        JOIN spaces ON space_items.space_id = spaces.id \
-        JOIN items ON space_items.item_id = items.id \
-        WHERE spaces.spacename = '{}' ORDER BY items.id DESC LIMIT 1"
-        .format(slug)).fetchall()
+    conn.close()
+    items = get_items(slug)
+    flash(item+" hinzugefügt.", "success")
     return render_template("item.html", items=items)
 
 
@@ -78,7 +88,7 @@ def update_item(slug, id):
     item = conn.execute("SELECT items.item, items.quantity FROM items WHERE items.id = '"+str(id)+"'")
     print(item)
     return "ok"
-    # conn.execute("UPDATE ")
+
 
 @app.route("/<slug>/update/<id>/quantity_add", methods=["PUT"])
 def add_quantity(slug, id):
@@ -97,12 +107,16 @@ def add_quantity(slug, id):
 
 
 # delete item
-@app.route("/<slug>/delete/<id>", methods=["DELETE"])
-def delete_item(slug, id):
+@app.route("/<slug>/delete/<id>/<action>", methods=["DELETE"])
+def delete_item(slug, id, action):
     conn = get_db_connection()
-    conn.execute("DELETE FROM space_items WHERE item_id = "+str(id))
+    conn.execute("DELETE FROM space_items WHERE item_id = "+str(id)+" AND space_id = (SELECT spaces.id FROM spaces WHERE spacename = '"+str(slug)+"')")
     conn.commit()
-    return "", 200
+    if action == "delete":
+        flash("Artikel gelöscht.", "danger")
+    # return "", 200
+    items = get_items(slug)
+    return render_template("item.html", items=items)
 
 
 # empty list
@@ -110,11 +124,8 @@ def delete_item(slug, id):
 def clear_list(slug):
     conn = get_db_connection()
     conn.execute("DELETE FROM space_items \
-        WHERE space_id = (SELECT space_id FROM spaces WHERE spacename = '"+slug+"')")
+        WHERE space_id = (SELECT spaces.id FROM spaces WHERE spacename = '"+str(slug)+"')")
     conn.commit()
-    items = conn.execute("SELECT items.id, items.item, items.quantity FROM space_items \
-        JOIN spaces ON space_items.space_id = spaces.id \
-        JOIN items ON space_items.item_id = items.id \
-        WHERE spaces.spacename = '{}' ORDER BY items.id DESC"
-        .format(slug)).fetchall()
+    items = get_items(slug)
+    flash("Einkaufszeddl geleert.", "danger")
     return render_template("item.html", items=items)

@@ -9,8 +9,11 @@
 <div class="row u-center">
     <div class="col-12 col-md-6">
         <div id="item-container">
-            <h1>Space erfolgreich erstellt</h1>
-            Kopiere den Link zu deinem Space: <a href="{{ url_for('shoppingspace', slug=name) }}">{{ url_for('shoppingspace', slug=name) }}</a>
+            <h2>Einkaufszeddl erfolgreich erstellt</h2>
+            <p>Hier ist der Link zu deiner Einkaufsliste: <input value="{{ request.url}}{{ name }}"></p>
+            <p>Kopiere den Link und teile ihn mit Freunden & Familie!</p>
+            <p>Du kannst direkt starten & Artikel zu deiner Einkaufsliste hinzufügen.</p>
+            <a href="{{ url_for('shoppingspace', slug=name) }}" type="button" class="btn btn--s">Zum Einkaufszeddl</a>
         </div>
     </div>
 </div>
