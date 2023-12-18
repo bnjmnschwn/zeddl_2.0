@@ -3,6 +3,7 @@ from flask import render_template, request, send_file, flash, redirect, url_for
 from app.forms import SpaceForm
 import sqlite3
 import unidecode
+import json
 
 def get_db_connection():
     conn = sqlite3.connect('zeddl.db')
@@ -24,7 +25,40 @@ def create_slug(name):
 # PWA Stuff
 @app.route('/manifest.json')
 def serve_manifest():
-    return send_file('manifest.json', mimetype='application/manifest+json')
+    manifest = {
+    "name": "ZEDDL App",
+    "short_name": "ZEDDL",
+    "theme_color": "#000000",
+    "background_color": "#FFFFFF",
+    "display": "standalone",
+    "orientation": "portrait",
+    "scope": "/",
+    "start_url": request.referrer,
+    "icons": [
+    {
+    "src": "static/images/zeddl_icon.png",
+    "sizes": "144x144",
+    "type": "image/png",
+    "purpose": "any maskable"
+    },
+    {
+    "src": "static/icons/zeddl_icon.png",
+    "sizes": "192x192",
+    "type": "image/png",
+    "purpose": "any maskable"
+    },
+    {
+    "src": "static/icons/zeddl_icon.png",
+    "sizes": "512x512",
+    "type": "image/png",
+    "purpose": "any maskable"
+    }
+    ]
+    }
+    print(manifest)
+    with open("app/manifest.json", "w") as outfile:
+        json.dump(manifest, outfile)
+    return send_file("manifest.json", mimetype="application/manifest+json")
 
 
 @app.route('/sw.js')
