@@ -3,14 +3,17 @@
 {% block content %}
 <div class="row u-center">
     <div class="col-12 col-md-6 u-flex u-items-baseline u-justify-space-between">
-        <h1><a href="{{ url_for('shoppingspace', slug=request.view_args.slug) }}" class="text-black font-bold">ZEDDL</a></h1>
+        <h1><a href="{{ url_for('index') }}" class="text-black font-bold">ZEDDL</a></h1>
         <div class="u-inline-flex">
-            <button class="btn btn--xs btn-transparent u-center mx-2">
+          <!--   <a href="{{ url_for('shoppingspace', slug=request.view_args.slug) }}" class="btn btn--xs btn-transparent u-center mx-2">
+                <span class="material-symbols-outlined">checklist</span>
+            </a> -->
+            <a onclick="copyLink()" hx-get="{{ url_for('shoppingspace', slug=request.view_args.slug, action='copylink') }}" hx-target="body" id="copylink" class="btn btn--xs btn-transparent u-center mx-2">
                 <span class="material-symbols-outlined m-1">share</span>
-            </button>
-            <button class="btn btn--xs btn-transparent u-center mx-2" hx-trigger="click" hx-target="#zeddl-content" hx-swap="innerHTML" hx-delete="{{ url_for('clear_list', slug=request.view_args.slug) }}" >
+            </a>
+            <a class="btn btn--xs btn-transparent u-center mx-2" hx-trigger="click" hx-target="#zeddl-content" hx-swap="innerHTML" hx-delete="{{ url_for('clear_list', slug=request.view_args.slug) }}" >
                 <span class="material-symbols-outlined m-1">delete_sweep</span>
-            </button>
+            </a>
         </div>
         <input value="{{ request.url }}" class="input--xs" hidden>
     </div>
@@ -23,7 +26,7 @@
             hx-target="#zeddl-content" 
             hx-swap="innerHTML"
             id="submit-btn">
-            <div class="input-control">
+            <div class="form-group input-control">
                 <input 
                     hx-post="{{ url_for('get_suggestions', slug=request.view_args.slug) }}" 
                     hx-target="#suggestion-box"
@@ -34,9 +37,9 @@
                     type="text" 
                     name="item" 
                     placeholder="Artikel hinzufügen"
-                    class="input-contains-icon-right">
-                <span class="icon icon-right"><span class="material-symbols-outlined">send</span></span>
-                <button type="submit" hidden>
+                    class="form-group-input">
+                <!-- <span class="icon icon-right"></span> -->
+                <button class="form-group-btn u-center" type="submit" style="border-radius: 10px; border: 1px solid #191C21; color: #FFFFFF; background-color: #252932";><span class="material-symbols-outlined">send</span></button>
             </div>
         </form>
     </div>
@@ -52,5 +55,28 @@ document.body.addEventListener('htmx:afterSwap', function(event) {
         suggestionBox.remove();
     }
 });
+</script>
+<script>
+// document.addEventListener('htmx:afterSwap', function(event) {
+    // Create a temporary hidden text element
+    function copyLink() {
+    const tempInput = document.createElement('input');
+    tempInput.style.position = 'absolute';
+    tempInput.style.left = '-9999px';
+    tempInput.value = window.location.href;
+
+    // Append it to the body
+    document.body.appendChild(tempInput);
+
+    // Select the text
+    tempInput.select();
+    tempInput.setSelectionRange(0, 99999); // For mobile devices
+
+    // Copy the text inside the text field
+    document.execCommand('copy');
+
+    // Remove the temporary input element
+    document.body.removeChild(tempInput);
+}  
 </script>
 {% endblock %}

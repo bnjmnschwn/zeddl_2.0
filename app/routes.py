@@ -4,6 +4,7 @@ from app.forms import SpaceForm
 import sqlite3
 import unidecode
 import json
+import sys
 
 def get_db_connection():
     conn = sqlite3.connect('zeddl.db')
@@ -15,7 +16,7 @@ def get_items(slug):
     items = conn.execute("SELECT items.id, items.item, space_items.quantity, space_items.info FROM space_items \
         JOIN spaces ON space_items.space_id = spaces.id \
         JOIN items ON space_items.item_id = items.id \
-        WHERE spaces.spacename = '{}' ORDER BY items.created ASC"
+        WHERE spaces.spacename = '{}' ORDER BY space_items.created ASC"
         .format(slug)).fetchall()
     return items
 
@@ -88,7 +89,9 @@ def index():
 
 # space index
 @app.route("/<slug>")
-def shoppingspace(slug):
+def shoppingspace(slug, **kwargs):
+    if request.args.get("action"):
+        flash("Link in die Zwischenablage kopiert.", "success")
     form = SpaceForm()
     items = get_items(slug)
     return render_template("shoppinglist.html", form=form, items=items)
@@ -104,23 +107,28 @@ def add_item(slug, **kwargs):
     else:
         item = request.form.get("item")
     try:
-        item_check = conn.execute("SELECT items.item FROM items WHERE items.item = '"+item+"'").fetchall()
-        conn.commit()
-        if len(item_check) == 0: 
-            conn.execute("INSERT INTO items (item) VALUES (?)", (item,))
-            conn.execute("INSERT INTO space_items (space_id, item_id, quantity, info) \
-                SELECT (SELECT id FROM spaces WHERE spacename = '"+slug+"') AS space_id, \
-                (SELECT id FROM items WHERE id = LAST_INSERT_ROWID()) AS item_id, \
-                1 AS quantity, NULL AS info")
-            conn.commit()
+        if item == "":
+            sys.exit(1)
         else:
-            conn.execute("INSERT INTO space_items (space_id, item_id) \
-                SELECT (SELECT id FROM spaces WHERE spacename = '"+slug+"'), \
-                (SELECT id FROM items WHERE item = '"+item+"')")
+            item_check = conn.execute("SELECT items.item FROM items WHERE items.item = '"+item+"'").fetchall()
             conn.commit()
-        flash(item+" hinzugefügt.", "success")
+            if len(item_check) == 0: 
+                conn.execute("INSERT INTO items (item) VALUES (?)", (item,))
+                conn.execute("INSERT INTO space_items (space_id, item_id, quantity, info) \
+                    SELECT (SELECT id FROM spaces WHERE spacename = '"+slug+"') AS space_id, \
+                    (SELECT id FROM items WHERE id = LAST_INSERT_ROWID()) AS item_id, \
+                    1 AS quantity, NULL AS info")
+                conn.commit()
+            else:
+                conn.execute("INSERT INTO space_items (space_id, item_id) \
+                    SELECT (SELECT id FROM spaces WHERE spacename = '"+slug+"'), \
+                    (SELECT id FROM items WHERE item = '"+item+"')")
+                conn.commit()
+            flash(item+" hinzugefügt.", "success")
     except sqlite3.IntegrityError as e:
-        flash("Artikel bereits auf der Liste.", "warning")
+        flash("Artikel ist bereits auf der Liste.", "warning")
+    except SystemExit:
+        flash("Überprüfe deine Eingabe.", "warning")
     except:
         flash("Fehler beim hinzufügen", "danger")
     finally:
