@@ -13,7 +13,7 @@
                                 {% endif %}
                             </div>
                         </div>
-                        <div class="col-xs-6 col-sm-3 u-flex u-flex u-items-baseline u-justify-flex-start" style="visibility: hidden;">
+                        <div class="col-xs-6 col-sm-3 u-flex u-flex u-items-baseline u-justify-flex-start" style="display: none;">
                             {% if item.quantity == 1 %}
                                 <button class="btn bg-blue-100 text-blue-600 btn--xs" disabled>-</button>
                             {% else %}
@@ -42,7 +42,7 @@
 {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
         {% for category, message in messages %}
-            <div class="u-flex u-center u-justify-baseline animated fadeIn" remove-me="1.8s" style="position: fixed; bottom: 10%; left: 50%; transform: translate(-50%); z-index: 100">
+            <div class="u-flex u-center u-justify-baseline animated fadeIn" remove-me="1.8s" style="position: fixed; bottom: 10vh; left: 50%; transform: translate(-50%); z-index: 100">
                 <div class="toast toast--{{ category }} py-0 px-1">
                     <p><small>{{ message }}</small></p>
                 </div>
@@ -51,7 +51,7 @@
     {% endif %}
 {% endwith %}
     <div class="row u-center">
-        <div class="col-12 col-md-6" id="suggestion-box" style="position: fixed; bottom: 12%; left: 50%; transform: translate(-50%); z-index: 50;">
+        <div class="col-12 col-md-6" id="suggestion-box" style="position: fixed; bottom: 12vh; left: 50%; transform: translate(-50%); z-index: 50;">
         </div>
     </div>
 </div>

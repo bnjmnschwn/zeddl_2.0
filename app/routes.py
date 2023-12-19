@@ -12,7 +12,7 @@ def get_db_connection():
 
 def get_items(slug):
     conn = get_db_connection()
-    items = conn.execute("SELECT items.id, items.item, items.quantity FROM space_items \
+    items = conn.execute("SELECT items.id, items.item, space_items.quantity, space_items.info FROM space_items \
         JOIN spaces ON space_items.space_id = spaces.id \
         JOIN items ON space_items.item_id = items.id \
         WHERE spaces.spacename = '{}' ORDER BY items.created ASC"
@@ -98,27 +98,35 @@ def shoppingspace(slug):
 @app.route("/<slug>/add", methods=["POST"])
 def add_item(slug, **kwargs):
     conn = get_db_connection()
+    # check whether input comes from suggestion or input field
     if request.args.get("suggestion"):
         item = request.args.get("suggestion")
-    # if request.form.get("selected-item"):
-    #     item = request.form.get("selected-item")
     else:
         item = request.form.get("item")
-    print(item)
     try:
-        conn.execute("INSERT INTO items (item) VALUES (?)", (item,))
-        conn.execute("INSERT INTO space_items (space_id, item_id) \
-            SELECT (SELECT id FROM spaces WHERE spacename = '"+slug+"') AS space_id, \
-            id AS item_id FROM items WHERE id = LAST_INSERT_ROWID();")
+        item_check = conn.execute("SELECT items.item FROM items WHERE items.item = '"+item+"'").fetchall()
         conn.commit()
+        if len(item_check) == 0: 
+            conn.execute("INSERT INTO items (item) VALUES (?)", (item,))
+            conn.execute("INSERT INTO space_items (space_id, item_id, quantity, info) \
+                SELECT (SELECT id FROM spaces WHERE spacename = '"+slug+"') AS space_id, \
+                (SELECT id FROM items WHERE id = LAST_INSERT_ROWID()) AS item_id, \
+                1 AS quantity, NULL AS info")
+            conn.commit()
+        else:
+            conn.execute("INSERT INTO space_items (space_id, item_id) \
+                SELECT (SELECT id FROM spaces WHERE spacename = '"+slug+"'), \
+                (SELECT id FROM items WHERE item = '"+item+"')")
+            conn.commit()
+        flash(item+" hinzugefügt.", "success")
+    except sqlite3.IntegrityError as e:
+        flash("Artikel bereits auf der Liste.", "warning")
     except:
-        items = get_items(slug)
         flash("Fehler beim hinzufügen", "danger")
+    finally:
+        items = get_items(slug)
+        conn.close()
         return render_template("item.html", items=items)
-    conn.close()
-    items = get_items(slug)
-    flash(item+" hinzugefügt.", "success")
-    return render_template("item.html", items=items)
 
 
 # get suggestions

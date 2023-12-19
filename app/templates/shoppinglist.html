@@ -16,7 +16,7 @@
     </div>
 </div>
 {% include "item.html" %}
-<div class="row u-center" style="position: fixed; bottom: 1em; left: 0%; right: 0%; margin: 0 auto">
+<div class="row u-center" style="position: fixed; bottom: 1vh; left: 0%; right: 0%; margin: 0 auto">
     <div class="col-12 col-md-6">
         <form 
             hx-post="{{ url_for('add_item', slug=request.view_args.slug) }}" 
