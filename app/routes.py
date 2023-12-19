@@ -96,9 +96,15 @@ def shoppingspace(slug):
 
 # add item
 @app.route("/<slug>/add", methods=["POST"])
-def add_item(slug):
+def add_item(slug, **kwargs):
     conn = get_db_connection()
-    item = request.form.get("item")
+    if request.args.get("suggestion"):
+        item = request.args.get("suggestion")
+    # if request.form.get("selected-item"):
+    #     item = request.form.get("selected-item")
+    else:
+        item = request.form.get("item")
+    print(item)
     try:
         conn.execute("INSERT INTO items (item) VALUES (?)", (item,))
         conn.execute("INSERT INTO space_items (space_id, item_id) \
