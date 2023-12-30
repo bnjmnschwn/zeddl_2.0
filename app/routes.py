@@ -1,27 +1,31 @@
-from app import app
+from app import app, db
 from flask import render_template, request, send_file, flash, redirect, url_for
 from app.forms import SpaceForm
+from config import Config
+# from flask_sqlalchemy import text
 import sqlite3
 import unidecode
 import json
 import sys
+import logging
 
-def get_db_connection():
-    conn = sqlite3.connect('zeddl.db')
-    conn.row_factory = sqlite3.Row
-    return conn
+
+logging.basicConfig(level="INFO", format="%(asctime)s - %(message)s", datefmt="%d-%b-%y %H:%M:%S")
+
 
 def get_items(slug):
-    conn = get_db_connection()
-    items = conn.execute("SELECT items.id, items.item, space_items.quantity, space_items.info FROM space_items \
+    sql = db.text("SELECT items.id, items.item, space_items.quantity, space_items.info FROM space_items \
         JOIN spaces ON space_items.space_id = spaces.id \
         JOIN items ON space_items.item_id = items.id \
-        WHERE spaces.spacename = '{}' ORDER BY space_items.created ASC"
-        .format(slug)).fetchall()
+        WHERE spaces.spacename = :slug ORDER BY space_items.created ASC")
+    items = [item for item in db.session.execute(sql, {"slug": slug})]
+    db.session.commit()
     return items
+
 
 def create_slug(name):
     return unidecode.unidecode(name).casefold().replace(' ', '-').replace('\'','')
+
 
 # PWA Stuff
 @app.route('/manifest.json')
@@ -71,17 +75,25 @@ def index():
     form = SpaceForm()
     if request.method == "POST":
         name = create_slug(request.form.get("spacename"))
-        conn = get_db_connection()
         try:
-            conn.execute("INSERT INTO spaces (spacename) VALUES (?)", (name,))
-            conn.commit()
-        except:
+            sql = db.text("INSERT INTO spaces (spacename) VALUES (:name)")
+            db.session.execute(sql, {'name':name})
+            db.session.commit()
+        except db.exc.IntegrityError:
             error = {
                 "title": "Einkaufszeddl existiert bereits",
                 "message": "Wähle einen anderen Namen für deinen Einkaufszeddl."
             }
+            db.session.rollback()
             return render_template("index.html", form=form, error=error)
-        conn.close()
+        except Exception as e:
+            logging.warning("An error occurred:", e)
+            error = { 
+                "title": "Fehler",
+                "message": "Ein Fehler ist aufgetreten."
+            }
+            db.session.rollback()
+            return render_template("index.html", form=form, error=error)
         return render_template("space_created.html", name=name)
     else:
         return render_template("index.html", form=form)
@@ -100,7 +112,6 @@ def shoppingspace(slug, **kwargs):
 # add item
 @app.route("/<slug>/add", methods=["POST"])
 def add_item(slug, **kwargs):
-    conn = get_db_connection()
     # check whether input comes from suggestion or input field
     if request.args.get("suggestion"):
         item = request.args.get("suggestion")
@@ -110,30 +121,37 @@ def add_item(slug, **kwargs):
         if item == "":
             sys.exit(1)
         else:
-            item_check = conn.execute("SELECT items.item FROM items WHERE items.item = '"+item+"'").fetchall()
-            conn.commit()
+            sql = db.text("SELECT items.item FROM items WHERE items.item = :item")
+            item_check = [i for i in db.session.execute(sql, {"item": item})]
+            db.session.commit()
             if len(item_check) == 0: 
-                conn.execute("INSERT INTO items (item) VALUES (?)", (item,))
-                conn.execute("INSERT INTO space_items (space_id, item_id, quantity, info) \
-                    SELECT (SELECT id FROM spaces WHERE spacename = '"+slug+"') AS space_id, \
-                    (SELECT id FROM items WHERE id = LAST_INSERT_ROWID()) AS item_id, \
+                sql = db.text("INSERT INTO items (item) VALUES (:item) RETURNING id")
+                result = db.session.execute(sql, {"item": item})
+                item_id = result.fetchone()[0]
+                sql = db.text("INSERT INTO space_items (space_id, item_id, quantity, info) \
+                    SELECT (SELECT id FROM spaces WHERE spacename = :slug) AS space_id, \
+                    :last_item_id AS item_id, \
                     1 AS quantity, NULL AS info")
-                conn.commit()
+                db.session.execute(sql, {"slug": slug, "last_item_id": item_id})
+                db.session.commit()
             else:
-                conn.execute("INSERT INTO space_items (space_id, item_id) \
-                    SELECT (SELECT id FROM spaces WHERE spacename = '"+slug+"'), \
-                    (SELECT id FROM items WHERE item = '"+item+"')")
-                conn.commit()
+                sql = db.text("INSERT INTO space_items (space_id, item_id) \
+                    SELECT (SELECT id FROM spaces WHERE spacename = :slug), \
+                    (SELECT id FROM items WHERE item = :item)")
+                db.session.execute(sql, {"slug": slug, "item": item})
+                db.session.commit()
             flash(item+" hinzugefügt.", "success")
-    except sqlite3.IntegrityError as e:
+    except db.exc.IntegrityError as e:
+        db.session.rollback()
         flash("Artikel ist bereits auf der Liste.", "warning")
     except SystemExit:
+        db.session.rollback()
         flash("Überprüfe deine Eingabe.", "warning")
     except:
+        db.session.rollback()
         flash("Fehler beim hinzufügen", "danger")
     finally:
         items = get_items(slug)
-        conn.close()
         return render_template("item.html", items=items)
 
 
@@ -142,11 +160,11 @@ def add_item(slug, **kwargs):
 def get_suggestions(slug):
     value = request.form.get("item")
     if len(value) >= 3:        
-        conn = get_db_connection()
-        suggestions = conn.execute("SELECT items.item FROM items \
-            WHERE item COLLATE UTF8_GENERAL_CI LIKE \
-            REPLACE('%"+value+"%', ' ', '%') LIMIT 5").fetchall()
-        conn.commit()
+        sql = db.text("SELECT items.item FROM items \
+            WHERE LOWER(items.item) LIKE \
+            LOWER(REPLACE('%'||:value||'%', ' ', '%')) LIMIT 5")
+        suggestions = db.session.execute(sql, {"value": value})
+        db.session.commit()
         return render_template("suggestions.html", suggestions=suggestions)
     else:
         return "", 200
@@ -180,9 +198,9 @@ def add_quantity(slug, id):
 # check & delete item
 @app.route("/<slug>/delete/<id>/<action>", methods=["DELETE"])
 def delete_item(slug, id, action):
-    conn = get_db_connection()
-    conn.execute("DELETE FROM space_items WHERE item_id = "+str(id)+" AND space_id = (SELECT spaces.id FROM spaces WHERE spacename = '"+str(slug)+"')")
-    conn.commit()
+    sql = db.text("DELETE FROM space_items WHERE item_id = :item_id AND space_id = (SELECT spaces.id FROM spaces WHERE spacename = :slug)")
+    db.session.execute(sql, {"item_id": id, "slug": slug})
+    db.session.commit()
     if action == "delete":
         flash("Artikel gelöscht.", "danger")
     # return "", 200
@@ -193,10 +211,10 @@ def delete_item(slug, id, action):
 # empty list
 @app.route("/<slug>/delete/", methods=["DELETE"])
 def clear_list(slug):
-    conn = get_db_connection()
-    conn.execute("DELETE FROM space_items \
-        WHERE space_id = (SELECT spaces.id FROM spaces WHERE spacename = '"+str(slug)+"')")
-    conn.commit()
+    sql = db.text("DELETE FROM space_items \
+        WHERE space_id = (SELECT spaces.id FROM spaces WHERE spacename = :slug)")
+    db.session.execute(sql, {"slug": slug})
+    db.session.commit()
     items = get_items(slug)
     flash("Einkaufszeddl geleert.", "danger")
     return render_template("item.html", items=items)
